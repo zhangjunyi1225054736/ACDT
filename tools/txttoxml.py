@@ -3,13 +3,13 @@ import cv2
 import string
 import os 
 
-res='/home/zhangdongyu/object-detection/data/VOCdevkit2007/VOC2007/JPEGImages'
-list ='/home/zhangdongyu/object-detection/data/VOCdevkit2007/VOC2007/ImageSets/Main/train.txt'
-parsedLabel='/home/zhangdongyu/object-detection/detectron/VOC2007/txt/'
-savePath = '/home/zhangdongyu/object-detection/detectron/data/VOC2007/Annotations/'
+res='/data/zhangjunyi/drone-object-detection/VOC2007/JPEGImages'
+list ='/data/zhangjunyi/drone-object-detection/data/VOC2007/ImageSets/Main/train.txt'
+parsedLabel='/data/zhangjunyi/drone-object-detection/VOC2007/txt/'
+savePath = '/data/zhangjunyi/drone-object-detection/data/VOC2007/Annotations/'
 
 if not os.path.exists(savePath):
- os.mkdir(savePath)
+   os.mkdir(savePath)
 
 f = open(list,'r')
 object_class = ['ignored_regions','pedestrian','people','bicycle','car','van','truck','tricycle','awning-tricycle','bus','motor','others']
@@ -18,12 +18,16 @@ count = 0
 lines = f.readlines()
 for line in lines[:]:
 	name = line.strip()
-	print(name)
+	#print(name)
+
 	im = cv2.imread(res+"/"+name+".jpg")
+	if im is None:
+           print(name)
+           continue
 	w = im.shape[1]
 	h = im.shape[0]
 	d = im.shape[2]
-	print (w,h,d)	
+	#print (w,h,d)	
 	doc = minidom.Document()
     
 	annotation = doc.createElement('annotation')
@@ -81,7 +85,7 @@ for line in lines[:]:
 	boxes = txtLabel.readlines()
 	for box in boxes:
 		box = box.strip().split(',')
-		print (box)
+		#print (box)
                 #print box[0]
 		object = doc.createElement('object')
 		nm = doc.createElement('name')
@@ -121,5 +125,5 @@ for line in lines[:]:
 	savefile.write(doc.toprettyxml(encoding='utf-8'))
 	savefile.close()
 	count += 1
-	print (count)
+	#print (count)
 
