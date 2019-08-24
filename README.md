@@ -1,6 +1,6 @@
 
 # Introduction
-This is the codes of ICCV workshop paper 《How to Fully Exploit The Abilities of Aerial Image Detectors》.
+This is the codes of ICCV workshop paper # How to Fully Exploit The Abilities of Aerial Image Detectors.
 Our model is based on detectron.pytorch.
 
 ![image](https://github.com/zhangjunyi1225054736/ACDT/blob/master/Selection_294.png)
