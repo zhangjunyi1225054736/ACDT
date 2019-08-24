@@ -8,3 +8,6 @@ The environment required is exactly the same as https://github.com/roytseng-tw/D
 
 # How to train
 bash zjy_train.sh
+
+# How to test
+bash zjy_test.sh
