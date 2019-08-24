@@ -262,31 +262,15 @@ def im_detect_bbox_aug(model, im, box_proposals=None, filename = None):
         )
         add_preds_t(scores_hf, boxes_hf)
 
-
-    scores_i, boxes_i, im_scale_i, blob_conv_i = im_detect_bbox(
-        model, im, cfg.TEST.SCALE, cfg.TEST.MAX_SIZE, boxes=box_proposals
-    )
-    add_preds_t(scores_i, boxes_i)
-   
-    #cfg.TEST.RPN_PRE_NMS_TOP_N = 2000
-    #score_result = get_scores(scores_i)
-
-    #mean_score_result = np.mean(score_result)
-    #print("mean_score_result:",  mean_score_result)      
-
     # Perform detection on croped images
-    #random_crop_number = 6
-    #Difficult_regions_ = get_randomCropRegion(w,h,random_crop_number)
     if cfg.TEST.BBOX_AUG.CROP:
     #if False:
        #print("crop image")
        h = im.shape[0]
        w = im.shape[1]
-       #random_crop_number = 6
-       #Difficult_regions_ = get_randomCropRegion(w,h,random_crop_number)
        if cfg.TEST.BBOX_AUG.RANDOM_CROP:
           #print("w,h:",w,h)
-          random_crop_number = 6
+          random_crop_number = 4
           Difficult_regions = get_randomCropRegion(w,h,random_crop_number)
           #print("Difficult_regions:", Difficult_regions)
        elif cfg.TEST.BBOX_AUG.NOR_CROP:
@@ -297,8 +281,8 @@ def im_detect_bbox_aug(model, im, box_proposals=None, filename = None):
           Difficult_regions[2] = [1, int(h/2), int(w/2), h-1]
           Difficult_regions[3] = [int(w/2), int(h/2), w-1, h-1]
           '''
-          w_n = 3
-          h_n = 3
+          w_n = 2
+          h_n = 2
 
           region_n = w_n * h_n
           w_ = int(w / w_n) 
@@ -312,12 +296,9 @@ def im_detect_bbox_aug(model, im, box_proposals=None, filename = None):
               Difficult_regions[i] =[k*w_+1, j*h_+1, (k+1)*w_, (j+1)*h_]
           #print(Difficult_regions) 
        elif cfg.TEST.BBOX_AUG.TRAINED_CROP:
-          #random_crop_number =4
-          #Difficult_regions_ = get_randomCropRegion(w,h,random_crop_number)
           Difficult_regions = get_trainedCropRegion(filename)
           Difficult_regions = get_final_regions(w,h,Difficult_regions)
           Difficult_regions = Difficult_regions.tolist()
-          #Difficult_regions = Difficult_regions + Difficult_regions_
 
        i = 0
        max_size = cfg.TEST.BBOX_AUG.MAX_SIZE
@@ -349,7 +330,7 @@ def im_detect_bbox_aug(model, im, box_proposals=None, filename = None):
            i = i + 1
            #print("im shape:",im.shape)
            #print("region_box:",region_box)
-           scale = min(im_crop.shape[0],im_crop.shape[1]) * 1
+           #scale = min(im_crop.shape[0],im_crop.shape[1]) * 1
            if cfg.TEST.BBOX_AUG.TRAINED_CROP:
                #if im_crop.shape[0]/im_crop.shape[1]>4 or im_crop.shape[0]/im_crop.shape[1]<0.25:
                #    continue
@@ -360,8 +341,8 @@ def im_detect_bbox_aug(model, im, box_proposals=None, filename = None):
                scores_scl, boxes_scl = im_detect_bbox_crop(model, im_crop, cfg.TEST.SCALE, max_size, box_proposals, region_box)
            else:
                #scale = min(im_crop.shape[0],im_crop.shape[1]) * 1.5
-               #scores_scl, boxes_scl = im_detect_bbox_crop(model, im_crop, cfg.TEST.SCALE, max_size, box_proposals, region_box)
-               scores_scl, boxes_scl = im_detect_bbox_crop(model, im_crop, scale, max_size, box_proposals, region_box)
+               scores_scl, boxes_scl = im_detect_bbox_crop(model, im_crop, cfg.TEST.SCALE, max_size, box_proposals, region_box)
+               #scores_scl, boxes_scl = im_detect_bbox_crop(model, im_crop, scale, max_size, box_proposals, region_box)
            #print("boxes_scl:",boxes_scl)
            #print("size scores_scl:", scores_scl.shape) #[1000, 13]
            #print("size boxes_scl:", boxes_scl.shape) #[1000, 52]
@@ -370,12 +351,11 @@ def im_detect_bbox_aug(model, im, box_proposals=None, filename = None):
            #print("min score scl:", min(score_result))        
            #print("max score scl:", max(score_result))
            #temp_avg.append(np.mean(score_result))        
-           #diff_score =  round((mean_score_result - np.mean(score_result)),2)
-           #print("diff_score:", diff_score)      
+           #print("mean score scl:", np.mean(score_result))        
            #scores_scl, boxes_scl, cls_boxes = box_results_with_nms_and_limit(scores_scl, boxes_scl)
-           print("size scores_scl:", scores_scl.shape) #[1000, 13]
-           print("size boxes_scl:", boxes_scl.shape) #[1000, 52]
-           #scores_scl = scores_scl  
+           #print("size scores_scl:", scores_scl.shape) #[1000, 13]
+           #print("size boxes_scl:", boxes_scl.shape) #[1000, 52]
+           #scores_scl = scores_scl + 0.1
            #index = nms_filter(scores_scl, boxes_scl)
            #print("index:", index)
            #print(" len index:", len(index))
@@ -413,12 +393,9 @@ def im_detect_bbox_aug(model, im, box_proposals=None, filename = None):
     # Compute detections for the original image (identity transform) last to
     # ensure that the Caffe2 workspace is populated with blobs corresponding
     # to the original image on return (postcondition of im_detect_bbox)
-    '''
     scores_i, boxes_i, im_scale_i, blob_conv_i = im_detect_bbox(
         model, im, cfg.TEST.SCALE, cfg.TEST.MAX_SIZE, boxes=box_proposals
     )
-    add_preds_t(scores_i, boxes_i)
-    '''
     #print("type scores_i:",type(scores_i))
     #print("size scores_i:",scores_i.shape)
     #print("min scores_i:",min(scores_i))
@@ -428,11 +405,7 @@ def im_detect_bbox_aug(model, im, box_proposals=None, filename = None):
     #print("max score i:", max(score_result))
     #print("mean score i:", np.mean(score_result))
 
-    #index = nms_filter(scores_i, boxes_i)
-    #print("index:", index)
-    #print(" len index:", len(index))
-    #add_preds_t(scores_i[index,:], boxes_i[index,:])
-    #add_preds_t(scores_i, boxes_i)
+    add_preds_t(scores_i, boxes_i)
 
     # Combine the predicted scores
     if cfg.TEST.BBOX_AUG.SCORE_HEUR == 'ID':
@@ -461,11 +434,10 @@ def im_detect_bbox_aug(model, im, box_proposals=None, filename = None):
     return scores_c, boxes_c, im_scale_i, blob_conv_i
 
 def get_scores(scores):
-    #result = []
-    result = np.max(scores,1)
-    #for i in scores:
-        #if max(i) >=0.5:
-           #result.append(max(i))
+    result = []
+    for i in scores:
+        if max(i) >=0.05:
+           result.append(max(i))
         #if max(i) == 0:
         #print ("mean scores:", np.mean(i))
     return result
@@ -477,8 +449,8 @@ def get_randomCropRegion(width,height,crop_number=4):
     while 1:
         if count >= crop_number:
            break
-        w = random.uniform(0.6 * width, width)
-        h = random.uniform(0.6 * height, height)
+        w = random.uniform(0.7 * width, width)
+        h = random.uniform(0.7 * height, height)
         #w = width - 10
         #h = height - 10
         if h / w < 0.5 or h / w > 2:
@@ -492,7 +464,7 @@ def get_randomCropRegion(width,height,crop_number=4):
     return region_box 
 
 def get_trainedCropRegion(filename):
-    with open('/data/zhangjunyi/drone-object-detection/sens_prop.json', 'r') as f:
+    with open('/data/zhangjunyi/drone-object-detection/prop.json', 'r') as f:
         data = json.load(f)
     bbox = data['bbox']
     name = data['img_name']
@@ -1083,7 +1055,7 @@ def nms_filter(scores, boxes):
         scores_j = scores[inds, j]
         boxes_j = boxes[inds, j * 4:(j + 1) * 4]
         dets_j = np.hstack((boxes_j, scores_j[:, np.newaxis])).astype(np.float32, copy=False)
-        keep = box_utils.nms(dets_j, 0.5)
+        keep = box_utils.nms(dets_j, 0.7)
         index.extend(keep)
     return index
     

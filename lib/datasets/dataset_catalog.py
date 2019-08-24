@@ -200,6 +200,7 @@ DATASETS = {
         ANN_FN:
             #_DATA_DIR + '/VOC2007/cocoformatJson/voc_2007_train.json',
             _DATA_DIR + '/VOC2007/cocoformatJson/voc_2007_train_crop.json',
+            #_DATA_DIR + '/VOC2007/cocoformatJson/voc_2007_train_balanced.json',
         DEVKIT_DIR:
             _DATA_DIR + '/VOC2007/VOCdevkit2007'
     },

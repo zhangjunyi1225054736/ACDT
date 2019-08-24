@@ -1,4 +1,4 @@
-# Written by Roy Tseng
+#: Written by Roy Tseng
 #
 # Based on:
 # --------------------------------------------------------
@@ -168,6 +168,7 @@ def im_detect_bbox(model, im, target_scale, target_max_size, boxes=None, region_
         rois = return_dict['rois'].data.cpu().numpy()
         # unscale back to raw image space
         if region_box == None:
+             #print("1111111111111")
              boxes = rois[:, 1:5] / im_scale
 
         else:
@@ -175,7 +176,7 @@ def im_detect_bbox(model, im, target_scale, target_max_size, boxes=None, region_
              boxes = rois[:, 1:5] / im_scale
              #print("boxes111:",boxes)
              #print("111:",boxes.shape) #[1000 * 4]
-             edge_index = (boxes[:,0]<2)|(boxes[:,1]<2) | (boxes[:,2] > w-2) | (boxes[:,3] > h-2)
+             edge_index = (boxes[:,0]<1)|(boxes[:,1]<1) | (boxes[:,2] > w-1) | (boxes[:,3] > h-1)
              #boxes = boxes[~edge_index]
              scores[edge_index] = [0 for i in range(13)]
              #print("222:",boxes.shape) #[1000 * 4]
@@ -261,15 +262,31 @@ def im_detect_bbox_aug(model, im, box_proposals=None, filename = None):
         )
         add_preds_t(scores_hf, boxes_hf)
 
+
+    scores_i, boxes_i, im_scale_i, blob_conv_i = im_detect_bbox(
+        model, im, cfg.TEST.SCALE, cfg.TEST.MAX_SIZE, boxes=box_proposals
+    )
+    add_preds_t(scores_i, boxes_i)
+   
+    #cfg.TEST.RPN_PRE_NMS_TOP_N = 2000
+    #score_result = get_scores(scores_i)
+
+    #mean_score_result = np.mean(score_result)
+    #print("mean_score_result:",  mean_score_result)      
+
     # Perform detection on croped images
+    #random_crop_number = 6
+    #Difficult_regions_ = get_randomCropRegion(w,h,random_crop_number)
     if cfg.TEST.BBOX_AUG.CROP:
     #if False:
        #print("crop image")
        h = im.shape[0]
        w = im.shape[1]
+       #random_crop_number = 6
+       #Difficult_regions_ = get_randomCropRegion(w,h,random_crop_number)
        if cfg.TEST.BBOX_AUG.RANDOM_CROP:
           #print("w,h:",w,h)
-          random_crop_number = 4
+          random_crop_number = 6
           Difficult_regions = get_randomCropRegion(w,h,random_crop_number)
           #print("Difficult_regions:", Difficult_regions)
        elif cfg.TEST.BBOX_AUG.NOR_CROP:
@@ -280,8 +297,8 @@ def im_detect_bbox_aug(model, im, box_proposals=None, filename = None):
           Difficult_regions[2] = [1, int(h/2), int(w/2), h-1]
           Difficult_regions[3] = [int(w/2), int(h/2), w-1, h-1]
           '''
-          w_n = 6
-          h_n = 4
+          w_n = 3
+          h_n = 3
 
           region_n = w_n * h_n
           w_ = int(w / w_n) 
@@ -291,44 +308,81 @@ def im_detect_bbox_aug(model, im, box_proposals=None, filename = None):
           for i in range(region_n):
               j = int(i / w_n)
               k = i - j*w_n
-              print("j,k",j,k)
+              #print("j,k",j,k)
               Difficult_regions[i] =[k*w_+1, j*h_+1, (k+1)*w_, (j+1)*h_]
           #print(Difficult_regions) 
        elif cfg.TEST.BBOX_AUG.TRAINED_CROP:
+          #random_crop_number =4
+          #Difficult_regions_ = get_randomCropRegion(w,h,random_crop_number)
           Difficult_regions = get_trainedCropRegion(filename)
+          Difficult_regions = get_final_regions(w,h,Difficult_regions)
+          Difficult_regions = Difficult_regions.tolist()
+          #Difficult_regions = Difficult_regions + Difficult_regions_
 
        i = 0
        max_size = cfg.TEST.BBOX_AUG.MAX_SIZE
-
+       f_crop_list = open("random_crop_list.txt",'a')
+       temp_avg = []
        for region_box in Difficult_regions:
            #for j in range(4):
                #region_box[i] = int(region_box[i])
+           #print("region box:", region_box)
            y1 = int(region_box[1]) 
            y2 = int(region_box[3]) 
            x1 = int(region_box[0])
            x2 = int(region_box[2])
+           w = x2 - x1
+           h = y2 - y1
+           s_ = filename.split(".")[0]+'_'+str(i) + "," +str(x1) + "," + str(y1) + "," + str(x2) + "," + str(y2) + "," + str(w) + ","+ str(h) + "," + str(round(w/h,2))
+           f_crop_list.write(s_+'\n')
+           #if (w / h > 1.7) or (h / w  > 1.7):
+              #continue 
+           image_H = im.shape[0]
+           #print("image_H:",image_H) 
+           if y2 >= image_H or y1 >=image_H:
+              continue
            im_crop = im[y1:y2, x1:x2] #crop the image
+           #print("im_crop shape:", im_crop.shape)
            #if(region_box[1]<0):
            #cv2.imwrite("./crop/"+str(i)+'_'+filename, im_crop)
               # cv2.imwrite("./crop/or"+str(i)+".jpg", im)
            i = i + 1
            #print("im shape:",im.shape)
            #print("region_box:",region_box)
-           scale = min(im_crop.shape[0],im_crop.shape[1]) * 1.5
+           scale = min(im_crop.shape[0],im_crop.shape[1]) * 1
            if cfg.TEST.BBOX_AUG.TRAINED_CROP:
                #if im_crop.shape[0]/im_crop.shape[1]>4 or im_crop.shape[0]/im_crop.shape[1]<0.25:
                #    continue
                #r = round(random.uniform(1.3,2),2)
-               r = 1.5
-               scale = min(im_crop.shape[0],im_crop.shape[1]) * r
-               scores_scl, boxes_scl = im_detect_bbox_crop(model, im_crop, scale, max_size, box_proposals, region_box)
+               #r = 1.5
+               #scale = min(im_crop.shape[0],im_crop.shape[1]) * r
+               #scores_scl, boxes_scl = im_detect_bbox_crop(model, im_crop, scale, max_size, box_proposals, region_box)
+               scores_scl, boxes_scl = im_detect_bbox_crop(model, im_crop, cfg.TEST.SCALE, max_size, box_proposals, region_box)
            else:
                #scale = min(im_crop.shape[0],im_crop.shape[1]) * 1.5
                #scores_scl, boxes_scl = im_detect_bbox_crop(model, im_crop, cfg.TEST.SCALE, max_size, box_proposals, region_box)
                scores_scl, boxes_scl = im_detect_bbox_crop(model, im_crop, scale, max_size, box_proposals, region_box)
            #print("boxes_scl:",boxes_scl)
+           #print("size scores_scl:", scores_scl.shape) #[1000, 13]
+           #print("size boxes_scl:", boxes_scl.shape) #[1000, 52]
+           #scores_scl = scores_scl + 0.05
+           #score_result = get_scores(scores_scl) 
+           #print("min score scl:", min(score_result))        
+           #print("max score scl:", max(score_result))
+           #temp_avg.append(np.mean(score_result))        
+           #diff_score =  round((mean_score_result - np.mean(score_result)),2)
+           #print("diff_score:", diff_score)      
+           #scores_scl, boxes_scl, cls_boxes = box_results_with_nms_and_limit(scores_scl, boxes_scl)
+           print("size scores_scl:", scores_scl.shape) #[1000, 13]
+           print("size boxes_scl:", boxes_scl.shape) #[1000, 52]
+           #scores_scl = scores_scl  
+           #index = nms_filter(scores_scl, boxes_scl)
+           #print("index:", index)
+           #print(" len index:", len(index))
+           #add_preds_t(scores_scl[index,:], boxes_scl[index,:])
            add_preds_t(scores_scl, boxes_scl)
 
+       #print("mean score scl:", np.mean(temp_avg))        
     # Compute detections at different scales
     for scale in cfg.TEST.BBOX_AUG.SCALES:
         max_size = cfg.TEST.BBOX_AUG.MAX_SIZE
@@ -359,10 +413,26 @@ def im_detect_bbox_aug(model, im, box_proposals=None, filename = None):
     # Compute detections for the original image (identity transform) last to
     # ensure that the Caffe2 workspace is populated with blobs corresponding
     # to the original image on return (postcondition of im_detect_bbox)
+    '''
     scores_i, boxes_i, im_scale_i, blob_conv_i = im_detect_bbox(
         model, im, cfg.TEST.SCALE, cfg.TEST.MAX_SIZE, boxes=box_proposals
     )
     add_preds_t(scores_i, boxes_i)
+    '''
+    #print("type scores_i:",type(scores_i))
+    #print("size scores_i:",scores_i.shape)
+    #print("min scores_i:",min(scores_i))
+    #print("len scores_i:",len(scores_i))
+    #score_result = get_scores(scores_i)
+    #print("min score i:", min(score_result))
+    #print("max score i:", max(score_result))
+    #print("mean score i:", np.mean(score_result))
+
+    #index = nms_filter(scores_i, boxes_i)
+    #print("index:", index)
+    #print(" len index:", len(index))
+    #add_preds_t(scores_i[index,:], boxes_i[index,:])
+    #add_preds_t(scores_i, boxes_i)
 
     # Combine the predicted scores
     if cfg.TEST.BBOX_AUG.SCORE_HEUR == 'ID':
@@ -390,6 +460,16 @@ def im_detect_bbox_aug(model, im, box_proposals=None, filename = None):
 
     return scores_c, boxes_c, im_scale_i, blob_conv_i
 
+def get_scores(scores):
+    #result = []
+    result = np.max(scores,1)
+    #for i in scores:
+        #if max(i) >=0.5:
+           #result.append(max(i))
+        #if max(i) == 0:
+        #print ("mean scores:", np.mean(i))
+    return result
+   
 def get_randomCropRegion(width,height,crop_number=4):
     
     region_box = [[] for i in range(crop_number)]
@@ -397,8 +477,8 @@ def get_randomCropRegion(width,height,crop_number=4):
     while 1:
         if count >= crop_number:
            break
-        w = random.uniform(0.9 * width, width)
-        h = random.uniform(0.2 * height, 0.25*height)
+        w = random.uniform(0.6 * width, width)
+        h = random.uniform(0.6 * height, height)
         #w = width - 10
         #h = height - 10
         if h / w < 0.5 or h / w > 2:
@@ -412,12 +492,130 @@ def get_randomCropRegion(width,height,crop_number=4):
     return region_box 
 
 def get_trainedCropRegion(filename):
-    with open('/data/zhangjunyi/drone-object-detection/prop.json', 'r') as f:
+    with open('/data/zhangjunyi/drone-object-detection/sens_prop.json', 'r') as f:
         data = json.load(f)
     bbox = data['bbox']
     name = data['img_name']
     region_box = bbox[name.index(filename)]
     return region_box
+
+
+def get_final_regions(W, H, Difficult_regions):
+
+    regions = Difficult_regions.copy()
+    #print(regions)
+
+    for i, bbox in enumerate(Difficult_regions):
+        if len(bbox) != 4:
+           print(bbox)
+           continue
+        x1,y1,x2,y2 = bbox
+        w = x2 - x1
+        h = y2 - y1
+        if (h / w) < 0.5:
+           del regions[i]
+           m_x = int((x1 + x2) / 2)
+           box1 = [x1,y1,m_x,y2]
+           box2 = [m_x,y1,x2,y2]
+           regions.append(box1)
+           regions.append(box2)
+        elif (h / w) > 2: 
+           del regions[i]
+           m_y = int((y1 + y2) / 2)
+           box1 = [x1,y1,x2,m_y]
+           box2 = [x1,m_y,x2,y2]
+           regions.append(box1)
+           regions.append(box2)
+        else:
+           pass
+    regions = np.array(regions)
+    #print(regions)
+    #center_x = (regions[:,0]+regions[:,2])/2
+    #center_y = (regions[:,1]+regions[:,3])/2
+    #center = np.hstack((np.array([center_x]).T,np.array([center_y]).T))
+    #print("center:", center)
+    w_ = 0.6*W
+    h_ = 0.6*H
+
+    for i, bbox in enumerate(regions):
+        if len(bbox) != 4:
+           print(bbox)
+           np.delete(regions,i)
+           continue
+
+        x1,y1,x2,y2 = bbox
+        w = x2 - x1
+        h = y2 - y1
+
+        #center_x,center_y = center[i]
+        #center_x = int(center_x)
+        #center_y = int(center_y)
+        #min_y = min(center_y, Y-center_y) 
+        #print("w,h",w,h)
+        #print("w_,h_",w_,h_)
+        if w >= w_ and h < h_:
+           add_y = int((h_ - h) / 2)
+           y1_new = y1 - add_y
+           y2_new = y2 + add_y
+           
+           if y1_new < 0 :
+              y1_new = 0
+           if y2_new > H :
+              y2_new = H-1
+
+           regions[i][1] = y1_new
+           regions[i][3] = y2_new
+           
+
+        elif w < w_ and h >= h_:
+           add_x = int((w_ - w) / 2)
+           x1_new = x1 - add_x
+           x2_new = x2 + add_x
+           
+           if x1_new < 0 :
+              x1_new = 0
+           if x2_new > W:
+              x2_new = W-1
+
+           regions[i][0] = x1_new
+           regions[i][2] = x2_new
+
+        elif w < w_ and h < h_:
+           #print("x1,y1,x2,y2:",x1,y1,x2,y2) 
+           add_y = int((h_ - h) / 2)
+           #print("add_y:",add_y)
+           y1_new = y1 - add_y
+           y2_new = y2 + add_y
+           
+           if y1_new < 0 :
+              y1_new = 0
+           if y2_new > H:
+              y2_new = H-1
+           
+           add_x = int((w_ - w) / 2)
+           #print("add_x:",add_x)
+           x1_new = x1 - add_x
+           x2_new = x2 + add_x
+           
+           if x1_new < 0 :
+              x1_new = 0
+           if x2_new > W:
+              x2_new = W-1
+           regions[i][1] = y1_new
+           regions[i][3] = y2_new
+
+           regions[i][0] = x1_new
+           regions[i][2] = x2_new
+        else:
+           pass
+        #print("regions [i]:", regions[i])
+           #center_x,center_y = center[i]
+           
+    #print(len(regions)) 
+    #print(regions)
+    #exit()
+    return regions
+
 
 def im_detect_bbox_hflip(
         model, im, target_scale, target_max_size, box_proposals=None,region_box=None):
@@ -876,6 +1074,20 @@ def combine_heatmaps_size_dep(hms_ts, ds_ts, us_ts, boxes, heur_f):
     return hms_c
 
 
+def nms_filter(scores, boxes):
+    num_classes = cfg.MODEL.NUM_CLASSES
+    cls_boxes = [[] for _ in range(num_classes)] 
+    index = []
+    for j in range(1, num_classes):
+        inds = np.where(scores[:, j] > cfg.TEST.SCORE_THRESH)[0]
+        scores_j = scores[inds, j]
+        boxes_j = boxes[inds, j * 4:(j + 1) * 4]
+        dets_j = np.hstack((boxes_j, scores_j[:, np.newaxis])).astype(np.float32, copy=False)
+        keep = box_utils.nms(dets_j, 0.5)
+        index.extend(keep)
+    return index
+    
+
 def box_results_with_nms_and_limit(scores, boxes):  # NOTE: support single-batch
     """Returns bounding-box detection results by thresholding on scores and
     applying non-maximum suppression (NMS).
@@ -899,6 +1111,11 @@ def box_results_with_nms_and_limit(scores, boxes):  # NOTE: support single-batch
         scores_j = scores[inds, j]
         boxes_j = boxes[inds, j * 4:(j + 1) * 4]
         dets_j = np.hstack((boxes_j, scores_j[:, np.newaxis])).astype(np.float32, copy=False)
+        #print("dets_j:", dets_j.shape)
+        #keep = box_utils.nms(dets_j, cfg.TEST.NMS)
+        #print("keep:",len(keep))
+        #print("keep:",keep)
+        #exit()
         if cfg.TEST.SOFT_NMS.ENABLED:
             nms_dets, _ = box_utils.soft_nms(
                 dets_j,
@@ -909,6 +1126,7 @@ def box_results_with_nms_and_limit(scores, boxes):  # NOTE: support single-batch
             )
         else:
             keep = box_utils.nms(dets_j, cfg.TEST.NMS)
+            #print("keep:",keep)
             nms_dets = dets_j[keep, :]
         # Refine the post-NMS boxes using bounding-box voting
         if cfg.TEST.BBOX_VOTE.ENABLED:
@@ -934,6 +1152,8 @@ def box_results_with_nms_and_limit(scores, boxes):  # NOTE: support single-batch
     im_results = np.vstack([cls_boxes[j] for j in range(1, num_classes)])
     boxes = im_results[:, :-1]
     scores = im_results[:, -1]
+    #print("score shape:",score.shape)
+    #print("boxes shape:",boxes.shape)
     return scores, boxes, cls_boxes
 
 
@@ -1071,7 +1291,8 @@ def _get_blobs(im, rois, target_scale, target_max_size):
     #print("im shape:",im.shape)
     blobs = {}
     blobs['data'], im_scale, blobs['im_info'] = \
-        blob_utils.get_image_blob(im, target_scale, target_max_size)
+            blob_utils.get_image_blob(im, target_scale, target_max_size)
     if rois is not None:
         blobs['rois'] = _get_rois_blob(rois, im_scale)
     return blobs, im_scale
+                          

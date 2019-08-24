@@ -269,7 +269,7 @@ __C.TEST.BBOX_AUG.COORD_HEUR = 'UNION'
 __C.TEST.BBOX_AUG.H_FLIP = False
 
 #detect at crop image
-__C.TEST.BBOX_AUG.CROP = True
+__C.TEST.BBOX_AUG.CROP = False
 
 __C.TEST.BBOX_AUG.RANDOM_CROP = False
 

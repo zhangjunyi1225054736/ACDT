@@ -106,7 +106,7 @@ def get_class_string(class_index, score, dataset):
 
 def vis_one_image(
         im, im_name, output_dir, boxes, segms=None, keypoints=None, thresh=0.9,
-        kp_thresh=2, dpi=200, box_alpha=0.0, dataset=None, show_class=False,
+        kp_thresh=2, dpi=200, box_alpha=0.0, dataset=None, show_class=True,
         ext='pdf'):
     """Visual debugging of detections."""
     if not os.path.exists(output_dir):
@@ -154,8 +154,8 @@ def vis_one_image(
             plt.Rectangle((bbox[0], bbox[1]),
                           bbox[2] - bbox[0],
                           bbox[3] - bbox[1],
-                          fill=False, edgecolor='g',
-                          linewidth=0.5, alpha=box_alpha))
+                          fill=False, edgecolor='y',
+                          linewidth=3, alpha=box_alpha))
 
         if show_class:
             ax.text(

@@ -47,6 +47,7 @@ import utils.image as image_utils
 import utils.keypoints as keypoint_utils
 from numpy import random
 import json
+
 def im_detect_all(model, im,  box_proposals=None, timers=None, filename=None):
 
 
@@ -492,7 +493,7 @@ def get_randomCropRegion(width,height,crop_number=4):
     return region_box 
 
 def get_trainedCropRegion(filename):
-    with open('/data/zhangjunyi/drone-object-detection/sens_prop.json', 'r') as f:
+    with open('/data/zhangjunyi/drone-object-detection/sens_prop_3.json', 'r') as f:
         data = json.load(f)
     bbox = data['bbox']
     name = data['img_name']
