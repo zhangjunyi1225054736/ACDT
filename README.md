@@ -33,3 +33,12 @@ The results in dataset UAVDT:
 
 ![image](https://github.com/zhangjunyi1225054736/ACDT/blob/master/Selection_293.png)
 
+# Introduction of related
+
+1、prop.json
+This is the predicted difficult regions on testset.
+
+2、lib/roi_data/fast_rcnn.py 
+The IoU-balanced sampling is add to here.
+
+3、
