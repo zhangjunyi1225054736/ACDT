@@ -11,3 +11,5 @@ bash zjy_train.sh
 
 # How to test
 bash zjy_test.sh
+
+# Result
