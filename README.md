@@ -3,7 +3,7 @@
 This is the codes of ICCV workshop paper 《How to Fully Exploit The Abilities of Aerial Image Detectors》.
 Our model is based on detectron.pytorch.
 
-![image](https://github.com/zhangjunyi1225054736/ACDT/Selection_294.png)
+![image](https://github.com/zhangjunyi1225054736/ACDT/blob/master/Selection_294.png)
 
 
 # Environment
@@ -16,5 +16,5 @@ bash zjy_train.sh
 bash zjy_test.sh
 
 # Result
-![image](https://github.com/zhangjunyi1225054736/ACDT/Selection_292.png)
-![image](https://github.com/zhangjunyi1225054736/ACDT/Selection_293.png)
+![image](https://github.com/zhangjunyi1225054736/ACDT/blob/master/Selection_292.png)
+![image](https://github.com/zhangjunyi1225054736/ACDT/blob/master/Selection_293.png)
